@@ -171,14 +171,16 @@ def initialize():
     app.trace_display.canvas.mpl_connect('scroll_event', plot_mouse_scroll)
     global scroll_axis
     scroll_axis = 'x'
-    def zoom_axis_press(event=None):
+    def zoom_axis_y(event=None):
         global scroll_axis
         scroll_axis = 'y'
-    def zoom_axis_release(event=None):
+    def zoom_axis_x(event=None):
         global scroll_axis
         scroll_axis = 'x'
-    for key in get_keys('zoom_axis'):
-        bind_key_dp(key, zoom_axis_press, zoom_axis_release)
+    for key in get_keys('set_zoom_axis_x'):
+        bind_key_dp(key, press_function=zoom_axis_x)
+    for key in get_keys('set_zoom_axis_y'):
+        bind_key_dp(key, press_function=zoom_axis_y)
 
 
     app.root.bind('<Alt-o>', lambda e: app.menubar.ask_open_recording())
