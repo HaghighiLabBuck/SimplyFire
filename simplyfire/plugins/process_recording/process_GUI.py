@@ -50,6 +50,7 @@ channel_target = '1'
 baseline_mode = 'Mean of all targets'
 filter_algorithm = 'Lowpass'
 average_show_result = '1'
+filter_undoable = '1'
 width = 11
 pole = 8
 Hz = 1000
@@ -275,17 +276,20 @@ def filter_data(event=None):
             # account for more recordings being open (consider only the main file open)
             target_sweeps = [i for i in target_sweeps if i < app.interface.recordings[0].sweep_count]
 
-    if app.interface.is_accepting_undo():
-        temp_filename = app.interface.get_temp_filename()
-        app.interface.recordings[0].save_y_data(filename=temp_filename,
-                                                channels=target_channels,
-                                                sweeps=target_sweeps)
-        controller.add_undo([
-            lambda f=temp_filename, c=target_channels, s=target_sweeps: app.interface.recordings[0].load_y_data(f,c,s),
-            lambda c=False:app.interface.plot(clear=c, relim=False, fix_x=True, fix_y=True),
-            lambda f=temp_filename:app.interface.delete_temp_file(f),
-            lambda msg='Undo filter': controller.log(msg)
-        ])
+    if(form.inputs['filter_undoable'].get() == '1'):			
+        if app.interface.is_accepting_undo():
+            temp_filename = app.interface.get_temp_filename()
+            app.interface.recordings[0].save_y_data(filename=temp_filename,
+                                                    channels=target_channels,
+                                                    sweeps=target_sweeps)
+            controller.add_undo([
+                lambda f=temp_filename, c=target_channels, s=target_sweeps: app.interface.recordings[0].load_y_data(f,c,s),
+                lambda c=False:app.interface.plot(clear=c, relim=False, fix_x=True, fix_y=True),
+                lambda f=temp_filename:app.interface.delete_temp_file(f),
+                lambda msg='Undo filter': controller.log(msg)
+            ])
+    else:
+        app.interface.clear_undo()
     filter_choice = form.inputs['filter_algorithm'].get()
     filter_algorithm = form.inputs[f'filter_{filter_choice}_algorithm'].get()
     params = {}
@@ -401,6 +405,15 @@ form.insert_separator()
 form.insert_title(
     text='Filtering',
     separator=False
+)
+
+form.insert_label_checkbox(
+    name='filter_undoable',
+    text='Allow undo for filtering',
+    onvalue='1',
+    offvalue='',
+    separator=False,
+    default=filter_undoable
 )
 
 form.insert_label_optionmenu(
