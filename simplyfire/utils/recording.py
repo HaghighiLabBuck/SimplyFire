@@ -25,6 +25,7 @@ from pyabf import abf
 from simplyfire.utils import abfWriter
 from simplyfire.setting import config
 from math import ceil
+from psutil import Process
 
 class Recording():
     def __init__(self, filepath):
@@ -74,9 +75,15 @@ class Recording():
         self.sweep_points = data.sweepPointCount
 
         # extract y and x values and store as 3D numpy array (channel, sweep, datapoint)
+        print('Before making data matrices')
+        print(Process().memory_info().rss)
         self.y_data = np.reshape(data.data, (self.channel_count, self.sweep_count, self.sweep_points))
+        print('After making Y data matrix')
+        print(Process().memory_info().rss)
         self.x_data = np.repeat(np.reshape(data.sweepX, (1, 1, self.sweep_points)), self.sweep_count, axis=1)
         self.x_data = np.repeat(self.x_data, self.channel_count, axis=0)
+        print('After making both data matrices')
+        print(Process().memory_info().rss)
 
     def read_csv(self, filename):
         """
@@ -231,6 +238,8 @@ class Recording():
         sweeps: list of int - If None, defaults to all sweeps
         xlim: float tuple [left, right] - If None, defaults to all data points in each sweep
         """
+        print('Before getting Y array')
+        print(Process().memory_info().rss)
         if channels == None:
             channels = range(self.channel_count)
         elif type(channels) == int:
@@ -239,6 +248,28 @@ class Recording():
             sweeps = [i for i in range(self.sweep_count)]
         elif type(sweeps) == int:
             sweeps = [sweeps]
+        if len(sweeps) == 1 and len(channels) == 1:
+##        if False:
+            print('Using single sweep case for get_ys')
+            if mode == 'continuous':
+                if xlim:
+                    return self.y_data[channels[0], sweeps[0],
+                           max(0, int(xlim[0] / self.x_interval)):min(self.sweep_count * self.sweep_points,
+                                                                        ceil(xlim[1] / self.x_interval) + 1)]
+                else:
+                    return_val = self.y_data[channels[0],sweeps[0]]				
+                    print('After getting Y array')
+                    print(Process().memory_info().rss)				
+                    return return_val
+            if mode == 'overlay':
+                if xlim:
+                    return self.y_data[channels[0], sweeps[0],
+                           max(0, int(xlim[0] / self.x_interval)):min(self.sweep_count * self.sweep_points,
+                                                                  ceil(xlim[1] / self.x_interval) + 1)]
+                return_val = self.y_data[channels[0], sweeps[0]]
+                print('After getting Y array')
+                print(Process().memory_info().rss)				
+                return return_val               
         if mode == 'continuous':
             if xlim:
                 return np.reshape(self.y_data[channels][:, sweeps, :],
@@ -265,10 +296,34 @@ class Recording():
         sweeps: list of int - only used for the 'overlay' plot_mode. If None, defaults to all sweeps
         xlim: float tuple [left, right] - If None, defaults to all data points in each sweep
         """
+        print('Before getting X array')
+        print(Process().memory_info().rss)
         if sweeps is None:
             sweeps = range(self.sweep_count)
         if channels == None:
             channels = range(self.channel_count)
+        if len(sweeps) == 1 and len(channels) == 1:
+##        if False:
+            print('Using single sweep case for get_xs')
+            if mode == 'continuous':
+                offset = sweeps[0] * (self.sweep_points * self.x_interval)
+                x_matrix = self.x_data[channels[0], sweeps[0]] + offset
+                if xlim:
+                    start_idx = max(0, int(xlim[0] / self.x_interval))
+                    end_idx = min(self.sweep_count * self.sweep_points, ceil(xlim[1] / self.x_interval) + 1)
+                    return x_matrix[:, :, start_idx:end_idx]
+                print('Returning X array')
+                print(Process().memory_info().rss)
+                return x_matrix
+            if mode == 'overlay':
+                if xlim:
+                    start_idx = max(0, int(xlim[0] / self.x_interval))
+                    end_idx = min(self.sweep_count * self.sweep_points, ceil(xlim[1] / self.x_interval) + 1)
+                    return self.x_data[channels[0], sweeps[0], start_idx:end_idx]
+                return_val = self.x_data[channels[0], sweeps[0]]
+                print('Returning X array')
+                print(Process().memory_info().rss)
+                return return_val
         if mode == 'continuous':
             mult = np.arange(0, len(sweeps))
             mult = np.reshape(mult, (1, len(sweeps), 1))
@@ -300,8 +355,8 @@ class Recording():
         if not channel:
             channel = self.channel
         if mode == 'continuous':
-            return self.get_x_matrix(mode='continuous', channels=[channel], xlim=xlim).flatten()
-        return self.get_x_matrix(mode='overlay', sweeps=[sweep], channels=[channel], xlim=xlim).flatten()
+            return self.get_x_matrix(mode='continuous', channels=[channel], xlim=xlim).ravel()
+        return self.get_x_matrix(mode='overlay', sweeps=[sweep], channels=[channel], xlim=xlim).ravel()
 
     def get_ys(self, mode='continuous', sweep=None, channel=None, xlim=None):
         """
@@ -318,8 +373,8 @@ class Recording():
         if channel == None:
             channel = self.channel
         if mode == 'continuous':
-            return self.get_y_matrix(mode='continuous', channels=[channel], xlim=xlim).flatten()
-        return self.get_y_matrix(mode=mode, channels=[channel], sweeps=[sweep], xlim=xlim).flatten()
+            return self.get_y_matrix(mode='continuous', channels=[channel], xlim=xlim).ravel()
+        return self.get_y_matrix(mode=mode, channels=[channel], sweeps=[sweep], xlim=xlim).ravel()
 
     def save_y_data(self, filename, channels=None, sweeps=None):
         """
