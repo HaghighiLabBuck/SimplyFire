@@ -157,9 +157,11 @@ key_map:
   key_find_in_window:
     - '<F5>'
 
-  key_zoom_axis:
-    - '<Control_L>'
-    - '<Control_R>'
+  key_set_zoom_axis_x:
+    - '<Key-x>'
+
+  key_set_zoom_axis_y:
+    - '<Key-y>'
 
   key_show_all:
     - '<Key-Home>'
