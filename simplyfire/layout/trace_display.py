@@ -27,8 +27,11 @@ from matplotlib.animation import FuncAnimation
 from simplyfire import app
 import gc
 from simplyfire.utils import calculate
+from psutil import Process
 
 sweeps = {}
+x_arrays = {}
+y_arrays = {}
 
 event_pick = False
 
@@ -129,7 +132,7 @@ def scroll_x_by(dir=1, percent=0):
     elif new_lim[1] > default_xlim[1]:
         delta = new_lim[1] - default_xlim[1]
         new_lim = (new_lim[0] - delta, new_lim[1] - delta)
-    ax.set_xlim(new_lim)
+    update_x_limits_data(new_lim)
 
     global fig
     global ani
@@ -171,7 +174,7 @@ def scroll_x_to(num):
     start = (default_xlim[1] - default_xlim[0] - (xlim[1] - xlim[0])) * float(num) / 100 + default_xlim[0]
     end = start + xlim[1] - xlim[0]
 
-    ax.set_xlim((start, end))
+    update_x_limits_data((start, end))
     global fig
     global ani
     draw_ani()
@@ -222,7 +225,7 @@ def center_plot_on(x, y):
 
         new_xlim_left = max(default_xlim[0], new_xlim_left)
         new_xlim_right = min(default_xlim[1], new_xlim_right)
-        ax.set_xlim(new_xlim_left, new_xlim_right)
+        update_x_limits_data((new_xlim_left, new_xlim_right))
         update_x_scrollbar((new_xlim_left, new_xlim_right))
         new_xlim = (new_xlim_left, new_xlim_right)
 
@@ -260,7 +263,7 @@ def center_plot_area(x1, x2, y1, y2):
     new_ylim_bottom = min(ylim[0], y1 - pady)
     new_ylim_top = max(ylim[1], y2 + pady)
 
-    ax.set_xlim(new_xlim_left, new_xlim_right)
+    update_x_limits_data((new_xlim_left, new_xlim_right))
     update_x_scrollbar((new_xlim_left, new_xlim_right))
     ax.set_ylim(new_ylim_bottom, new_ylim_top)
     update_y_scrollbar(xlim=(new_xlim_left, new_xlim_right), ylim=(new_ylim_bottom, new_ylim_top))
@@ -292,7 +295,7 @@ def zoom_x_by(direction=1, percent=0, event=None):
         width = new_lim[1] - new_lim[0]
         new_lim = (max(new_lim[1] - width, default_xlim[0]), default_xlim[1])
 
-    ax.set_xlim(new_lim)
+    update_x_limits_data(new_lim)
     global fig
     global ani
     # ani = FuncAnimation(
@@ -395,41 +398,68 @@ def refresh():
 
 def plot_trace(xs, ys, draw=True, relim=True, idx=0, color=None, width=None, name="", relim_axis='both'):
     global sweeps
+    global x_arrays
+    global y_arrays
     global trace_color
     global trace_width
     if not width:
         width=trace_width
-    if name == "":
-        name = f'Sweep_{len(sweeps)}'
-    if sweeps.get(name, None):
-        sweeps.get(name).set_xdata(xs)
-        sweeps.get(name).set_ydata(ys)
-    else:
-        if not color:
-            # color = app.widgets['style_trace_line_color'].get()
-            color = trace_color
-        sweeps[name], = ax.plot(xs, ys,
-                                              linewidth=width,
-                                              c=color,
-                                              animated=False)  # pickradius=int(app.widgets['style_event_pick_offset'].get())
     if relim:
         ax.autoscale(enable=False, axis='both')
-        ax.autoscale(enable=True, axis=relim_axis, tight=True)
         ax.relim(visible_only=True)
         # canvas.draw()
         draw_ani()
         if relim_axis == 'x' or relim_axis == 'both':
+            minX = min(xs)
+            maxX = max(xs)
             global default_xlim
-            default_xlim = ax.get_xlim()
-        if relim_axis == 'y' or relim_axis =='both':
+            if len(xs) > 100000:
+                ax.set_xlim(minX,xs[99999])
+            else:
+                ax.set_xlim(minX,maxX)
+            default_xlim = (minX,maxX)
+        if relim_axis == 'y' or relim_axis == 'both':
+            ax.autoscale(enable=True, axis='y', tight=True)
             global default_ylim
-            default_ylim = ax.get_ylim()
-
-
+            default_ylim = ax.get_ylim()    
+    	
+    if name == "":
+        name = f'Sweep_{len(sweeps)}'
+    print('Before assigning arrays to trace display')
+    print(Process().memory_info().rss)
+    x_arrays[name] = xs
+    y_arrays[name] = ys	
+    	
+    xlims = ax.get_xlim()
+    left_idx = calculate.search_index(xlims[0],xs)
+    right_idx = calculate.search_index(xlims[1],xs)
+    print('Before plotting trace')
+    print(Process().memory_info().rss)
+    if sweeps.get(name, None):
+        sweeps.get(name).set_xdata(xs[left_idx:right_idx+1])
+        sweeps.get(name).set_ydata(ys[left_idx:right_idx+1])
+    else:
+        if not color:
+            # color = app.widgets['style_trace_line_color'].get()
+            color = trace_color
+        sweeps[name], = ax.plot(xs[left_idx:right_idx+1], ys[left_idx:right_idx+1],
+                                              linewidth=width,
+                                              c=color,
+                                              animated=False)  # pickradius=int(app.widgets['style_event_pick_offset'].get())
+    print('After plotting trace')
+    print(Process().memory_info().rss)
     if draw:
         # canvas.draw()
         # refresh()
         draw_ani()
+		
+def update_x_limits_data(new_lims):
+    for name, sweep in sweeps.items():
+        left_idx = calculate.search_index(new_lims[0],x_arrays[name])
+        right_idx = calculate.search_index(new_lims[1],x_arrays[name])
+        sweep.set_xdata(x_arrays[name][left_idx:right_idx+1])
+        sweep.set_ydata(y_arrays[name][left_idx:right_idx+1])
+    ax.set_xlim(new_lims)
 
 def hide_sweep(idx, draw=False):
     try:
@@ -481,7 +511,7 @@ def update_default_lim(x=True, y=True, fix_x=False, fix_y=False):
         global default_ylim
         default_ylim = ax.get_ylim()
     if fix_x:
-        ax.set_xlim(xlim)
+        update_x_limits_data(xlim)
     if fix_y:
         ax.set_ylim(ylim)
 
@@ -499,7 +529,7 @@ def set_axis_limit(axis, lim, draw=True):
             l[0] = default_xlim[0]
         if l[1] < default_xlim[0] or l[1] > default_xlim[1]:
             l[1] = default_xlim[1]
-        ax.set_xlim(l)
+        update_x_limits_data(l)
     if axis == 'y':
         l = [float(e) if e != 'auto' else default_ylim[i] for i, e in enumerate(lim)]
         ax.set_ylim(l)
