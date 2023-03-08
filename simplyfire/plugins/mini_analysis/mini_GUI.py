@@ -565,14 +565,10 @@ def _find_mini_all_thread(undo=True):
     """
     global mini_df
     params = get_params()
-    try:
-        xs = app.trace_display.sweeps['Sweep_0'].get_xdata()
-        ys = app.trace_display.sweeps['Sweep_0'].get_ydata()
-    except:  # no traces yet
-        return
-    df = mini_analysis.find_mini_auto(xlim=None, xs=xs, ys=ys, x_sigdig=app.interface.recordings[0].x_sigdig,
+    df = mini_analysis.find_mini_auto(xlim=None, xs=None, ys=None, x_sigdig=app.interface.recordings[0].x_sigdig,
                                          sampling_rate=app.interface.recordings[0].sampling_rate,
                                          channel=app.interface.current_channel,
+                                         recording = app.interface.recordings[0],
                                          reference_df=mini_df, y_unit=app.interface.recordings[0].y_unit,
                                          x_unit=app.interface.recordings[0].x_unit, progress_bar=app.pb, **params)
     mini_df = pd.concat([mini_df, df])
@@ -587,7 +583,8 @@ def _find_mini_all_thread(undo=True):
         update_event_markers(draw=True)
         datapanel.append(df, undo=False)
         saved = False  # track change
-        if undo and app.interface.is_accepting_undo():
+##        if undo and app.interface.is_accepting_undo():
+        if False:
             undo_stack.append(
                 lambda s=df[df.channel == app.interface.current_channel]['t']: delete_selection(s, undo=False)
             )
@@ -1142,14 +1139,14 @@ def popup_plot_amplitude(x, y, baseline):
                   c='black',
                   alpha=0.9)
 
-def popup_plot_base_extrapolate(xs, end, data):
+def popup_plot_base_extrapolate(xs, idx_offset, end, data):
     """
     Plot the baseline on the popup guide, as extrapolation from the decay of the previous peak
     """
     global popup_tracker
     popup_tracker = True
 
-    xs = xs[int(data['prev_peak_idx']):end]
+    xs = xs[int(data['prev_peak_idx'])-idx_offset:end]
     A = data['prev_decay_A']
     decay = data['prev_decay_const'] / 1000
     baseline = data['prev_baseline']
@@ -1162,24 +1159,24 @@ def popup_plot_base_extrapolate(xs, end, data):
                   label='Prev decay'
                   )
 
-def popup_plot_base_range(xs, ys, data):
+def popup_plot_base_range(xs, ys, idx_offset, data):
     """
     Plot info on the popup guide.
     Marks the datapoints that were referenced to estimate the baseline
     """
-    popup.ax.plot(xs[int(data['base_idx_L']): int(data['base_idx_R'])],
-                  ys[int(data['base_idx_L']): int(data['base_idx_R'])],
+    popup.ax.plot(xs[int(data['base_idx_L'])-idx_offset: int(data['base_idx_R'])-idx_offset],
+                  ys[int(data['base_idx_L'])-idx_offset: int(data['base_idx_R'])-idx_offset],
                   linewidth=app.trace_display.trace_width * 3,
                   c='pink',
                   alpha=0.9,
                   label='Baseline sample')
 
-def popup_plot_base_simple(xs, end, data):
+def popup_plot_base_simple(xs, idx_offset, end, data):
     """
     Plot info on the popup guide.
     Creates a horizontal line marking the baseline value.
     """
-    x1 = xs[int(data['start_idx'])]
+    x1 = xs[int(data['start_idx'])-idx_offset]
     x2 = xs[end]
     baseline = data['baseline']
     popup.ax.plot([x1, x2], [baseline, baseline],
@@ -1187,12 +1184,12 @@ def popup_plot_base_simple(xs, end, data):
                   c='black',
                   alpha=0.9)
 
-def popup_plot_decay_fit(xs, end, data):
+def popup_plot_decay_fit(xs, idx_offset, end, data):
     """
     Plot info on the popup guide
     Plot a single-exponential decay
     """
-    xs = xs[int(data['peak_idx']):end]
+    xs = xs[int(data['peak_idx'])-idx_offset:end]
     A = data['decay_A']
     tau = data['decay_const'] / 1000
     decay_base = data['decay_baseline']  # support for constant
@@ -1204,12 +1201,12 @@ def popup_plot_decay_fit(xs, end, data):
                   c=decay_color,
                   label='Decay fit')
 
-def popup_plot_decay_extrapolate(xs, end, data):
+def popup_plot_decay_extrapolate(xs, idx_offset, end, data):
     """
     Plot info on the popup guide
     Plot the single-exponential decay offset by the decay of the previous mini of the compound mini
     """
-    xs = xs[int(data['peak_idx']):end]
+    xs = xs[int(data['peak_idx'])-idx_offset:end]
     A = data['decay_A']
     tau = data['decay_const'] / 1000
     decay_base = data['decay_baseline']  # support for constant
@@ -1266,20 +1263,23 @@ def popup_plot_peak(x, y):
                              label='Peak')
     guide_markers['peak'] = popup_peak
 
-def popup_plot_recording(xs, ys, data):
-    start_lim_idx = int(max(data.get('start_idx', 0) - data.get('lag', 0) - data.get('delta_x', 0), 0))
-    xlim_idx_L = data.get('xlim_idx_L')
+def popup_plot_recording(xs, ys, idx_offset, data):
+    start_lim_idx = int(max(data.get('start_idx', 0) - data.get('lag', 0) - data.get('delta_x', 0) - idx_offset, 0))
+    xlim_idx_L = data.get('xlim_idx_L') - idx_offset
     if xlim_idx_L is None:
         xlim_idx_L = np.inf
     start_idx = int(min(start_lim_idx, xlim_idx_L))
     if data['compound']:
-        start_idx = int(min(start_idx, int(data['prev_peak_idx'])))
+        start_idx = int(min(start_idx, int(data['prev_peak_idx'])-idx_offset))
 
-    end_lim_idx = int(min(data.get('peak_idx', 0) + data.get('decay_max_points', 0), len(xs) - 1))
-    xlim_idx_R = data.get('xlim_idx_R')
+    end_lim_idx = int(min(data.get('peak_idx', 0) + data.get('decay_max_points', 0) - idx_offset, len(xs) - 1))
+    xlim_idx_R = data.get('xlim_idx_R') - idx_offset
     if xlim_idx_R is None:
         xlim_idx_R = 0
     end_idx = int(max(end_lim_idx, xlim_idx_R))
+    
+    print(start_idx)
+    print(end_idx)
 
     popup.ax.plot(xs[start_idx:end_idx],
                  ys[start_idx:end_idx],
@@ -1287,7 +1287,7 @@ def popup_plot_recording(xs, ys, data):
                  color=app.trace_display.trace_color,
                  )
     popup.ax.set_xlim((xs[start_lim_idx], xs[end_lim_idx]))
-    popup_plot_start(xs[int(data['start_idx'])], ys[int(data['start_idx'])])
+    popup_plot_start(xs[int(data['start_idx'])-idx_offset], ys[int(data['start_idx']-idx_offset)])
     return start_idx, end_idx
 
 def popup_plot_start(x, y):
@@ -1308,17 +1308,21 @@ def popup_report(xs:np.ndarray, ys:np.ndarray, data:dict):
     """
     Call this function to plot the results to the popup guide
     """
+    ##Note that all indices in "data" are relative to the start of the recording!
     popup_clear()
     global popup_data
     popup_data = data
+    print(xs)
     if data['failure']:
         popup.msg_label.insert(text=str(data.get('failure'))+'\n')
     else:
         popup.msg_label.insert(text='Success!' + '\n')
+    idx_offset = int(xs[0]*app.interface.recordings[0].sampling_rate) # the position of the left plotted data point in the trace display, within the full recording
+    print(idx_offset)
     try:
-        start, end = popup_plot_recording(xs, ys, data)  # start coordinate and the plot
+        start, end = popup_plot_recording(xs, ys, idx_offset, data)  # start coordinate and the plot, returned indices are corrected for scrolled window
     except Exception as e:
-        # print(e)
+        print(e)
         pass
     try:
         popup.msg_label.insert(f'Peak: {data["peak_coord_x"]:.3f}, {data["peak_coord_y"]:.3f}\n')
@@ -1328,7 +1332,7 @@ def popup_report(xs:np.ndarray, ys:np.ndarray, data:dict):
         pass
     try:
         if data['base_idx_L'] is not None and not data['compound']:
-            popup_plot_base_range(xs, ys, data)
+            popup_plot_base_range(xs, ys, idx_offset, data)
     except:
         pass
 
@@ -1341,9 +1345,9 @@ def popup_report(xs:np.ndarray, ys:np.ndarray, data:dict):
             right_idx = data.get('base_idx_R', None)
             if left_idx and right_idx:
                 popup.msg_label.insert(
-                    f'Baseline calculated by averaging: {xs[int(left_idx)]:.3f}-{xs[int(right_idx)]:.3f}\n')
+                    f'Baseline calculated by averaging: {xs[int(left_idx)-idx_offset]:.3f}-{xs[int(right_idx)-idx_offset]:.3f}\n')
             else:
-                popup.msg_label.inesrt(f'Baseline calculated by averaging data points.\n')
+                popup.msg_label.insert(f'Baseline calculated by averaging data points.\n')
     except:
         pass
 
@@ -1358,9 +1362,9 @@ def popup_report(xs:np.ndarray, ys:np.ndarray, data:dict):
 
     try:
         if not data['compound']:
-            popup_plot_base_simple(xs, end, data)
+            popup_plot_base_simple(xs, idx_offset, end, data)
         else:
-            popup_plot_base_extrapolate(xs, end, data)
+            popup_plot_base_extrapolate(xs, idx_offset, end, data)
     except:
         pass
 
@@ -1373,9 +1377,9 @@ def popup_report(xs:np.ndarray, ys:np.ndarray, data:dict):
 
     try:
         if not data['compound']:
-            popup_plot_decay_fit(xs, end, data)
+            popup_plot_decay_fit(xs, idx_offset, end, data)
         else:
-            popup_plot_decay_extrapolate(xs, end, data)
+            popup_plot_decay_extrapolate(xs, idx_offset, end, data)
     except:
         pass
 
