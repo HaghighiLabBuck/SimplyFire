@@ -61,29 +61,25 @@ def shift_y_data(recording, shift, plot_mode='continuous', channels=None, sweeps
 def filter_Boxcar(recording:Recording,
                   params:dict=None,
                   channels:list=None,
-                  sweeps:list=None,
                   ):
     assert type(recording) == Recording, f'data passed must be of type {Recording}'
     width = int(params['width'])
     kernel = np.ones(width)/width
     if not channels:
         channels = range(recording.channel_count)
-    if not sweeps:
-        sweeps = range(recording.sweep_count)
     for c in channels:
-        ys = recording.get_y_matrix(mode='continuous', channels=[c], sweeps=sweeps)
+        ys = recording.get_y_matrix(mode='continuous', channels=[c], sweeps=None)
         filtered = np.convolve(ys.flatten(), kernel, mode='same')
         filtered = np.reshape(filtered, (1,1,len(filtered)))
         filtered[:, :, :int(width/2)] = ys[:,:,:int(width/2)] # prevent 0-ing of the edges
         filtered[:, :, -int(width/2):] = ys[:,:,-int(width/2):] # prevent 0-ing of the edges
-        recording.replace_y_data(mode='continuous', channels=[c], sweeps=sweeps, new_data=filtered)
+        recording.replace_y_data(mode='continuous', channels=[c], sweeps=None, new_data=filtered)
 
     return recording
 
 def filter_Bessel(recording:Recording,
                   params:dict=None,
-                  channels:list=None,
-                  sweeps:list=None):
+                  channels:list=None):
     assert type(recording) == Recording, f'data passed must be of type {Recording}'
     pole = int(params['pole'])
     Hz = int(params['Hz'])
@@ -91,11 +87,13 @@ def filter_Bessel(recording:Recording,
     b,a = signal.bessel(pole, Wn, btype='low', analog=True, output='ba')
     for c in channels:
         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.lsim.html
-        ys = recording.get_y_matrix(mode='continuous', channels=[c], sweeps=sweeps).flatten()
-        xs = recording.get_x_matrix(mode='continuous', channels=[c], sweeps=sweeps).flatten()
+        ys = recording.get_y_matrix(mode='continuous', channels=[c], sweeps=None).flatten()
+        xs = recording.get_x_matrix(mode='continuous', channels=[c], sweeps=None).flatten()
+        print(xs.shape)
+        print(ys.shape)
         tout, filtered, xout = signal.lsim((b,a), U=ys, T=xs)
         filtered = np.reshape(filtered, (1, 1, len(filtered)))
-        recording.replace_y_data(mode='continuous', channels=[c], sweeps=sweeps, new_data=filtered)
+        recording.replace_y_data(mode='continuous', channels=[c], sweeps=None, new_data=filtered)
 
     pass
 
