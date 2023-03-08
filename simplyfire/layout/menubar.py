@@ -168,7 +168,7 @@ def set_view_continuous(save_undo=True):
 
     try:
         # interface.plot_continuous(interface.recordings[0], fix_axis=True)
-        interface.plot(fix_y=True, fix_x=True, relim=True)
+        interface.plot(fix_y=True, fix_x=False, relim=True)
     except:
         pass
     # if inputs['analysis_mode'].get() == 'mini':
@@ -197,7 +197,7 @@ def set_view_overlay(save_undo=True):
     app.log_display.log('change to overlay mode')
     # interface.config_cp_tab('overlay', state='normal')
     try:
-        interface.plot(fix_x=True, fix_y=True, relim=True)
+        interface.plot(fix_x=False, fix_y=True, relim=True)
     except:
         pass
     prev_trace_mode = 'overlay'
