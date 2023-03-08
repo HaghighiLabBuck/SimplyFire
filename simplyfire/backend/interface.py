@@ -29,9 +29,11 @@ import os
 # Use this module to connect analysis functions to the GUI
 from simplyfire.utils import abfWriter
 from simplyfire.utils.recording import Recording
+from psutil import Process
 
 mini_df = pd.DataFrame()
 current_channel = 0
+
 
 ##########################
 # Undo controls
@@ -328,7 +330,8 @@ def plot(fix_x=False, fix_y=False, clear=True, **kwargs):
 
 
 def plot_continuous(recording, draw=False, sweep_name_suffix='Sweep', relim=True, **kwargs):
-    global current_channel
+    global current_channel, plot_mode
+    plot_mode = 'continuous'
     app.trace_display.plot_trace(recording.get_xs(mode='continuous', channel=current_channel),
                              recording.get_ys(mode='continuous', channel=current_channel),
                              draw=draw,
@@ -340,6 +343,8 @@ def plot_continuous(recording, draw=False, sweep_name_suffix='Sweep', relim=True
 
 
 def plot_overlay(recording, draw=False, sweep_name_suffix='Sweep', relim=True, **kwargs):
+    global plot_mode
+    plot_mode = 'overlay'
     for i in range(recording.sweep_count):
         app.pb['value'] = (i+1)/recording.sweep_count*100
         app.pb.update()
@@ -347,7 +352,8 @@ def plot_overlay(recording, draw=False, sweep_name_suffix='Sweep', relim=True, *
         ys = recording.get_ys(mode='overlay', sweep=i, channel=current_channel)
         app.trace_display.plot_trace(xs, ys,
                                  draw=False,
-                                 relim=(i == recording.sweep_count-1 and relim),  #relim for the final sweep
+                                 relim=(i == 0 and relim), # Relim for first sweep
+                                 ##relim=(i == recording.sweep_count-1 and relim),  #relim for the final sweep
                                  name = f"{sweep_name_suffix}_{i}",
                                  **kwargs)
     if draw:
@@ -355,6 +361,15 @@ def plot_overlay(recording, draw=False, sweep_name_suffix='Sweep', relim=True, *
         app.trace_display.draw_ani()
     app.pb['value'] = 0
     app.pb.update()
+    
+def update_trace(trace_name,new_xlim):
+    if plot_mode == 'overlay':
+        new_xs = recordings[0].get_xs(mode='overlay', sweep=int(trace_name[-1]), channel=current_channel,xlim=new_xlim)
+        new_ys = recordings[0].get_ys(mode='overlay', sweep=int(trace_name[-1]), channel=current_channel,xlim=new_xlim)
+    elif plot_mode == 'continuous':
+        new_xs = recordings[0].get_xs(mode='continuous', sweep=None, channel=current_channel,xlim=new_xlim)
+        new_ys = recordings[0].get_ys(mode='continuous', sweep=None, channel=current_channel,xlim=new_xlim)
+    return new_xs,new_ys
 
 ######################################
 # Handling GUI placements
