@@ -27,11 +27,9 @@ from matplotlib.animation import FuncAnimation
 from simplyfire import app
 import gc
 from simplyfire.utils import calculate
-from psutil import Process
+from simplyfire.backend import interface
 
 sweeps = {}
-x_arrays = {}
-y_arrays = {}
 
 event_pick = False
 
@@ -398,8 +396,6 @@ def refresh():
 
 def plot_trace(xs, ys, draw=True, relim=True, idx=0, color=None, width=None, name="", relim_axis='both'):
     global sweeps
-    global x_arrays
-    global y_arrays
     global trace_color
     global trace_width
     if not width:
@@ -425,29 +421,22 @@ def plot_trace(xs, ys, draw=True, relim=True, idx=0, color=None, width=None, nam
     	
     if name == "":
         name = f'Sweep_{len(sweeps)}'
-    print('Before assigning arrays to trace display')
-    print(Process().memory_info().rss)
-    x_arrays[name] = xs
-    y_arrays[name] = ys	
     	
     xlims = ax.get_xlim()
-    left_idx = calculate.search_index(xlims[0],xs)
-    right_idx = calculate.search_index(xlims[1],xs)
-    print('Before plotting trace')
-    print(Process().memory_info().rss)
+    ## Check to see if bounds of trace should be clipped
+    if xlims[0] > xs[0] or xlims[1] < xs[-1]:
+        xs,ys = interface.update_trace(name,xlims)
     if sweeps.get(name, None):
-        sweeps.get(name).set_xdata(xs[left_idx:right_idx+1])
-        sweeps.get(name).set_ydata(ys[left_idx:right_idx+1])
+        sweeps.get(name).set_xdata(xs)
+        sweeps.get(name).set_ydata(ys)
     else:
         if not color:
             # color = app.widgets['style_trace_line_color'].get()
             color = trace_color
-        sweeps[name], = ax.plot(xs[left_idx:right_idx+1], ys[left_idx:right_idx+1],
+        sweeps[name], = ax.plot(xs, ys,
                                               linewidth=width,
                                               c=color,
                                               animated=False)  # pickradius=int(app.widgets['style_event_pick_offset'].get())
-    print('After plotting trace')
-    print(Process().memory_info().rss)
     if draw:
         # canvas.draw()
         # refresh()
@@ -455,10 +444,9 @@ def plot_trace(xs, ys, draw=True, relim=True, idx=0, color=None, width=None, nam
 		
 def update_x_limits_data(new_lims):
     for name, sweep in sweeps.items():
-        left_idx = calculate.search_index(new_lims[0],x_arrays[name])
-        right_idx = calculate.search_index(new_lims[1],x_arrays[name])
-        sweep.set_xdata(x_arrays[name][left_idx:right_idx+1])
-        sweep.set_ydata(y_arrays[name][left_idx:right_idx+1])
+        new_x,new_y = interface.update_trace(name,new_lims)
+        sweep.set_xdata(new_x)
+        sweep.set_ydata(new_y)
     ax.set_xlim(new_lims)
 
 def hide_sweep(idx, draw=False):
@@ -499,6 +487,7 @@ def show_all_plot(update_default=False):
         default_ylim = ax.get_ylim()
 
 def update_default_lim(x=True, y=True, fix_x=False, fix_y=False):
+    print('update_default_lim')
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
     ax.autoscale(enable=True, axis='both', tight=True)
