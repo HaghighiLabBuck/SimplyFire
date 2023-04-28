@@ -5,7 +5,7 @@ Read the full manual [here](https://simplyfire.readthedocs.io/).
 
 ## .exe Installation
 
-Download the software zip file from the recent [release](https://github.com/megumi-mori/SimplyFire/releases).
+Download the software zip file from the recent [release](https://github.com/HaghighiLabBuck/SimplyFire/releases).
 You only need to download the zip file.
 
 Extract the contents of the zip file, and locate SimplyFire.exe to run the software.
