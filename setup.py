@@ -37,8 +37,8 @@ with open('README.md') as readme_file:
 
 setup(
     name='simplyfire',
-    version='0.4.2',
-    author='Megumi Mori',
+    version='0.5.1',
+    author='Megumi Mori, Andrew Rosko',
     description='Customizable electrophysiology analysis software',
     long_description=readme,
     long_description_content_type='text/markdown',
