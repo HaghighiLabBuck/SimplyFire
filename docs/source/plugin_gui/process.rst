@@ -22,7 +22,9 @@ Apply processing to the following sweeps
   Select between ``All sweeps``, ``Visible sweeps``, ``Highlighted sweeps``
   Processing algorithm will be applied to the corresponding sweeps.
   Visibility and highlight of sweeps can be changed in the ``Sweeps`` plugin
-  and are only applicable in the ``overlay`` mode.
+  and are only applicable in the ``overlay`` mode. Note that as of Version 0.5.1, 
+  filtering is applied to the entire recording (for the current channel) whatever the selection of this option. 
+  This is to avoid artifacts at the boundaries of the filtered data.
 
 Limit process to the current channel
   Toggle this on to limit the scope of the algorithm to the current channel.
@@ -91,6 +93,12 @@ Filtering
 More filtering options may be added based on demand.
 
 Selecting the filtering algorithm makes widgets for required parameters visible.
+
+"Allow undo for filtering" checkbox
+  This allows filtering to be undone using the "undo" menu bar option. 
+  As this requires saving the unfiltered recording to a temp file on disk, 
+  it takes time (and some disk space) for large files. Therefore, users who 
+  process long recordings should leave this unchecked.
 
 Apply button
   Apply the filter to the sweeps
