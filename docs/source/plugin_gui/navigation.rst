@@ -4,7 +4,7 @@ The purpose of this plugin is to provide ease of use improvements
 to navigate the trace plot.
 
 
-.. figure:: /_static/img/navigation.png
+.. figure:: /docs/source/_static/img/navigation.png
   :align: center
 
   A typical layout of the Navigation Plugin.
