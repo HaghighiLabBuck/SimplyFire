@@ -4,7 +4,7 @@ Style Plugin
 The purpose of this plugin is to control the stylistic aspects of the
 trace plot.
 
-.. figure:: /_static/img/style.png
+.. figure:: /docs/source/_static/img/style.png
   :align: center
 
   A typical layout of the Style Plugin.
