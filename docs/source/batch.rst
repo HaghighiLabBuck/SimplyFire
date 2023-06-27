@@ -14,7 +14,7 @@ A standard process for setting up and running batch process is as follows:
 Build a protocol
 -----------------
 
-.. figure:: /_static/img/batch_1.png
+.. figure:: /docs/source/_static/img/batch_1.png
   :align: center
 
   Typical protocol builder window within batch processing
