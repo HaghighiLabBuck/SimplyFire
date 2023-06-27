@@ -3,7 +3,7 @@ Comparison Plugin
 
 The purpose of this plugin is to visually compare multiple recordings.
 
-.. figure:: /_static/img/comparison.png
+.. figure:: /docs/source/_static/img/comparison.png
   :align: center
 
   A typical layout of the Comparison Plugin
