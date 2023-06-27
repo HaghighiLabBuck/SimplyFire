@@ -57,7 +57,7 @@ Click ``Next`` to proceed to the next step.
 List filenames
 -----------------
 
-.. figure:: /_static/img/batch_2.png
+.. figure:: /docs/source/_static/img/batch_2.png
   :align: center
 
   Typical file list window within batch processing
@@ -87,7 +87,7 @@ Click ``Next`` to proceed to the next step.
 Run protocol
 -------------
 
-.. figure:: /_static/img/batch_3.png
+.. figure:: /docs/source/_static/img/batch_3.png
   :align: center
 
   Typical processing window in batch processing.
