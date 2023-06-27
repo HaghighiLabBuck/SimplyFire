@@ -3,11 +3,11 @@ import os
 # -- Project information
 
 project = u'SimplyFire'
-copyright = u'2022, Megumi Mori'
-author = u'Megumi Mori'
+copyright = u'2023, Andrew Rosko'
+author = u'Megumi Mori, Andrew Rosko'
 
-release = '0.3'
-version = '0.3.0'
+release = '0.5'
+version = '0.5.1'
 
 # -- General configuration
 
