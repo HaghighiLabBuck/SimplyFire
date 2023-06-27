@@ -25,7 +25,7 @@ Development
 Bugs? Feature requests? Check the :doc:`issues` for instructions on how to
 report bugs and requests.
 
-.. image:: /_static/img/representative.png
+.. image:: /docs/source/_static/img/representative.png
   :align: center
 
 
