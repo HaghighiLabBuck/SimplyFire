@@ -142,14 +142,16 @@ def save_recording(filename):
 
 def ask_export_results():
     app.root.event_generate('<<AskExportResults>>')
-    if len(app.results_display.dataframe.get_children()) == 0:
+    if len(app.results_display.dataframe.table.get_children()) == 0:
         answer = messagebox.askyesno('Warning', 'No entries in results table. Proceed?')
-        if answer:
-            filename = filedialog.asksaveasfilename(filetype=[('csv files', '*.csv'), ('ALl files', '*.*')],
-                                                    defaultextension='.csv',
-                                                    initialfile='results.csv')
-            if filename:
-                results_display.dataframe.export(filename)
+    else:
+        answer = True
+    if answer:
+        filename = filedialog.asksaveasfilename(filetype=[('csv files', '*.csv'), ('ALl files', '*.*')],
+                                                defaultextension='.csv',
+                                                initialfile='results.csv')
+        if filename:
+            results_display.dataframe.export(filename)
     app.root.event_generate('<<AskedExportResults>>')
 def set_view_continuous(save_undo=True):
     global inputs
