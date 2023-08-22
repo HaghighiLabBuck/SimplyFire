@@ -720,7 +720,7 @@ def calculate_mini_10_90_rise(xs:np.ndarray,
                               direction:int=1,
                               sampling_rate:int=None):
     low_idx = np.argmax((ys[start_idx:peak_idx+1]-baseline)*direction > amp*direction*0.1)
-    high_idx = np.argmax((ys[start_idx:peak_idx+1]-baseline)*direction > amp*direction*0.1)
+    high_idx = np.argmax((ys[start_idx:peak_idx+1]-baseline)*direction > amp*direction*0.9)
 
     if sampling_rate:
         return (high_idx-low_idx)*1/sampling_rate*1000
