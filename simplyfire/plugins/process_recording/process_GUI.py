@@ -257,25 +257,7 @@ def filter_data(event=None):
     else:
         target_channels = range(app.interface.recordings[0].channel_count)
 
-    target_sweeps = []
-    if form.inputs['sweep_target'].get() == 'All sweeps':
-        target_sweeps = range(app.interface.recordings[0].sweep_count)
-    elif form.inputs['sweep_target'].get() == 'Visible sweeps':
-        target_sweeps = app.plugin_manager.get_script('sweeps', 'sweeps_GUI').get_visible_sweeps()
-        if app.inputs['trace_mode'].get() == 'continuous' and 0 in target_sweeps:
-            target_sweeps = range(app.interface.recordings[0].sweep_count)
-        elif app.inputs['trace_mode'].get() == 'overlay':
-            # account for more recordings being open (consider only the main file open)
-            target_sweeps = [i for i in target_sweeps if i < app.interface.recordings[0].sweep_count]
-    elif form.inputs['sweep_target'].get() == 'Highlighted sweeps':
-        target_sweeps = app.plugin_manager.get_script('sweeps', 'sweeps_GUI').get_highlighted_sweeps()
-        # account for more recordings being open (consider only the main file open)
-        if app.inputs['trace_mode'].get() == 'continuous' and 0 in target_sweeps:
-            target_sweeps = range(app.interface.recordings[0].sweep_count)
-        elif app.inputs['trace_mode'].get() == 'overlay':
-            # account for more recordings being open (consider only the main file open)
-            target_sweeps = [i for i in target_sweeps if i < app.interface.recordings[0].sweep_count]
-
+    target_sweeps = range(app.interface.recordings[0].sweep_count)
     if(form.inputs['filter_undoable'].get() == '1'):			
         if app.interface.is_accepting_undo():
             temp_filename = app.interface.get_temp_filename()
@@ -300,8 +282,7 @@ def filter_data(event=None):
 
     getattr(process_recording, f'filter_{filter_algorithm}')(app.interface.recordings[0],
                                                    params,
-                                                   target_channels,
-                                                   target_sweeps)
+                                                   target_channels)
     app.interface.plot(fix_x=True, fix_y=True, clear=False, relim=False)
     controller.log(msg=f'Apply filter: {filter_choice}, {filter_algorithm}, {params}')
     controller.log(msg=f'Sweeps: {formatting.format_list_indices(target_sweeps)}, Channels: {formatting.format_list_indices(target_channels)}', header=False)
