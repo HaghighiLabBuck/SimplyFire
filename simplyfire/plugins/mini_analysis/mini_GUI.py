@@ -615,7 +615,7 @@ def find_mini_at(x1, x2):
 
     global saved
     if mini['success']:
-        mini_df = pd.concat([mini_df, mini.to_frame().T], axis=0, ignore_index=True, sort=False, copy=False)
+        mini_df = pd.concat([mini_df, pd.DataFrame(mini, index=[0])], axis=0, ignore_index=True, sort=False, copy=False)
 
         mini_df = mini_df.sort_values(by='t')
         datapanel.add({key: value for key, value in mini.items() if key in mini_header2config},

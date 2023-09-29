@@ -256,9 +256,6 @@ def find_mini_auto(xlim=None,
         except:
             pass
     new_df = pd.DataFrame.from_dict(hits)
-    # if reference_df:
-    #     if len(reference_df.index)>0:
-    #         new_df = pd.concat([reference_df,new_df]) # indexing is NOT UNIQUE
     return new_df
 
 
@@ -315,7 +312,10 @@ def find_mini_manual(xlim: tuple = None,
     if xlim_idx is None:
         if xlim is None:
             return {'success': False, 'failure': 'insufficient info'}
-        window_offset = recording.get_offset(xlim[0])
+        if recording is None:
+           window_offset = app.interface.recordings[0].get_offset(xlim[0])
+        else:
+           window_offset = recording.get_offset(xlim[0])
         try:
             xlim_idx = (
                 calculate.search_index(xlim[0], xs, sampling_rate), calculate.search_index(xlim[1], xs, sampling_rate))
@@ -339,7 +339,7 @@ def find_mini_manual(xlim: tuple = None,
         )
         mini['xlim_idx_L'] = xlim_idx[0]
         mini['xlim_idx_R'] = xlim_idx[1]
-        return pd.Series(mini)
+        return mini
     return {'success': False, 'failure': 'peak could not be found', 'xlim_idx': xlim_idx}
 
 
