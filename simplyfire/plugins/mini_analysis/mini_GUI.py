@@ -674,6 +674,7 @@ def _find_mini_range_thread(undo=True):
                                          x_sigdig=app.interface.recordings[0].x_sigdig,
                                          sampling_rate=app.interface.recordings[0].sampling_rate,
                                          channel=app.interface.current_channel,
+                                         recording=app.interface.recordings[0],
                                          reference_df=mini_df, y_unit=app.interface.recordings[0].y_unit,
                                          x_unit=app.interface.recordings[0].x_unit, progress_bar=app.pb, **params)
     mini_df = pd.concat([mini_df, df])
@@ -700,14 +701,24 @@ def find_mini_reanalyze(selection:list or tuple, accept:bool=False, undo=True):
     """
     reanalyze previously found (or analyzed) minis
     """
+
     global mini_df
     global saved
+    
+    sel_min = min(selection)
+    sel_max = max(selection)
+    old_xlim = app.trace_display.ax.get_xlim()
+    if sel_min < old_xlim[0] or sel_max > old_xlim[1]: #Plot has been scrolled since first analysis such that mini is no longer visible in window, but guide was left open. Fix limits before reanalyzing.
+        app.trace_display.update_x_limits_data((max(sel_min-1, 0), sel_max+1))
+    
     try:
         xs = app.trace_display.sweeps['Sweep_0'].get_xdata()
         ys = app.trace_display.sweeps['Sweep_0'].get_ydata()
     except:  # no traces yet
         return
-
+        
+        
+    window_offset = app.interface.recordings[0].get_offset(xs[0])
     data = mini_df[
         (mini_df['t'].isin(selection)) & (mini_df['channel'] == app.interface.current_channel)]
     if undo and app.interface.is_accepting_undo():
@@ -742,11 +753,13 @@ def find_mini_reanalyze(selection:list or tuple, accept:bool=False, undo=True):
         params['min_s2n'] = 0.0
         params['max_s2n'] = np.inf
     for peak_idx in peaks:
-        mini = mini_analysis.analyze_candidate_mini(xs=xs, ys=ys, peak_idx=peak_idx,
+        mini = mini_analysis.analyze_candidate_mini(xs=xs, ys=ys, peak_idx=peak_idx-window_offset,
                                                        x_sigdig=app.interface.recordings[0].x_sigdig,
                                                        sampling_rate=app.interface.recordings[0].sampling_rate,
                                                        channel=app.interface.current_channel,
                                                        reference_df=mini_df,
+                                                       offset=window_offset,
+                                                       reanalyze=True,
                                                        y_unit=app.interface.recordings[0].y_unit,
                                                        x_unit=app.interface.recordings[0].x_unit, **params)
         if mini['success']:
@@ -1265,21 +1278,21 @@ def popup_plot_peak(x, y):
 
 def popup_plot_recording(xs, ys, idx_offset, data):
     start_lim_idx = int(max(data.get('start_idx', 0) - data.get('lag', 0) - data.get('delta_x', 0) - idx_offset, 0))
-    xlim_idx_L = data.get('xlim_idx_L') - idx_offset
+    xlim_idx_L = data.get('xlim_idx_L')
     if xlim_idx_L is None:
         xlim_idx_L = np.inf
+    xlim_idx_L -= idx_offset
     start_idx = int(min(start_lim_idx, xlim_idx_L))
     if data['compound']:
         start_idx = int(min(start_idx, int(data['prev_peak_idx'])-idx_offset))
 
     end_lim_idx = int(min(data.get('peak_idx', 0) + data.get('decay_max_points', 0) - idx_offset, len(xs) - 1))
-    xlim_idx_R = data.get('xlim_idx_R') - idx_offset
+    xlim_idx_R = data.get('xlim_idx_R')
     if xlim_idx_R is None:
         xlim_idx_R = 0
+    xlim_idx_R -=  idx_offset
     end_idx = int(max(end_lim_idx, xlim_idx_R))
     
-    print(start_idx)
-    print(end_idx)
 
     popup.ax.plot(xs[start_idx:end_idx],
                  ys[start_idx:end_idx],
@@ -1312,18 +1325,17 @@ def popup_report(xs:np.ndarray, ys:np.ndarray, data:dict):
     popup_clear()
     global popup_data
     popup_data = data
-    print(xs)
     if data['failure']:
         popup.msg_label.insert(text=str(data.get('failure'))+'\n')
     else:
         popup.msg_label.insert(text='Success!' + '\n')
-    idx_offset = int(xs[0]*app.interface.recordings[0].sampling_rate) # the position of the left plotted data point in the trace display, within the full recording
-    print(idx_offset)
-    try:
-        start, end = popup_plot_recording(xs, ys, idx_offset, data)  # start coordinate and the plot, returned indices are corrected for scrolled window
-    except Exception as e:
-        print(e)
-        pass
+    idx_offset = app.interface.recordings[0].get_offset(xs[0]) # the position of the left plotted data point in the trace display, within the full recording
+    #try:
+    start, end = popup_plot_recording(xs, ys, idx_offset, data)  # start coordinate and the plot, returned indices are corrected for scrolled window
+    #except Exception as e:
+    #    print('Exception here')
+    #    print(e)
+    #    pass
     try:
         popup.msg_label.insert(f'Peak: {data["peak_coord_x"]:.3f}, {data["peak_coord_y"]:.3f}\n')
         popup_plot_peak(data['peak_coord_x'], data['peak_coord_y'])
