@@ -669,7 +669,6 @@ def _find_mini_range_thread(undo=True):
     except:  # no traces yet
         return
     params = get_params()
-
     df = mini_analysis.find_mini_auto(xlim=app.trace_display.ax.get_xlim(), xs=xs, ys=ys,
                                          x_sigdig=app.interface.recordings[0].x_sigdig,
                                          sampling_rate=app.interface.recordings[0].sampling_rate,
@@ -1300,7 +1299,8 @@ def popup_plot_recording(xs, ys, idx_offset, data):
                  color=app.trace_display.trace_color,
                  )
     popup.ax.set_xlim((xs[start_lim_idx], xs[end_lim_idx]))
-    popup_plot_start(xs[int(data['start_idx'])-idx_offset], ys[int(data['start_idx']-idx_offset)])
+    if data['success']:
+        popup_plot_start(xs[int(data['start_idx'])-idx_offset], ys[int(data['start_idx']-idx_offset)])
     return start_idx, end_idx
 
 def popup_plot_start(x, y):
