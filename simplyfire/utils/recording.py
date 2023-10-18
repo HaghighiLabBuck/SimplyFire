@@ -25,7 +25,6 @@ from pyabf import abf
 from simplyfire.utils import abfWriter
 from simplyfire.setting import config
 from math import ceil
-from psutil import Process
 
 class Recording():
     def __init__(self, filepath):
@@ -233,9 +232,6 @@ class Recording():
             sweeps = [i for i in range(self.sweep_count)]
         elif type(sweeps) == int:
             sweeps = [sweeps]
-        print(channels)
-        print(sweeps)
-        print(self.y_data.shape)
                            
         if mode == 'continuous':
             if xlim:
@@ -248,14 +244,11 @@ class Recording():
                                   (len(channels), 1, len(sweeps) * self.sweep_points))
         if mode == 'overlay':
             if xlim:
-                print('xlim overlay')
                 return self.y_data[channels][:, sweeps, :][:,:,
                        max(0, int(xlim[0] / self.x_interval)):min(self.sweep_count * self.sweep_points,
                                                                   ceil(xlim[1] / self.x_interval) + 1)]
             else:
-                print('no xlim overlay')
                 return_val = self.y_data[channels][:, sweeps, :]
-                print(return_val.shape)
                 return self.y_data[channels][:, sweeps, :]
 
     def get_x_matrix(self, mode='continuous', sweeps=None, channels=None, xlim=None):
@@ -330,20 +323,16 @@ class Recording():
             channel = self.channel
         if mode == 'continuous':
             if xlim:
-                ##print('xlim continuous')
                 return self.y_data[channel,:,:].ravel()[
                        max(0, int(xlim[0] / self.x_interval)):min(self.sweep_count * self.sweep_points,
                                                                         ceil(xlim[1] / self.x_interval) + 1)]
-            else:
-                ##print('no xlim continuous')			
+            else:		
                 return self.y_data[channel,:,:].ravel()	
         if mode == 'overlay':
             if xlim:
-                ##print('xlim overlay')
                 return self.y_data[channel, sweep,
                        max(0, int(xlim[0] / self.x_interval)):min(self.sweep_points,
                                                                   ceil(xlim[1] / self.x_interval) + 1)]
-            ##print('no xlim overlay')
             return self.y_data[channel, sweep]
 
     def save_y_data(self, filename, channels=None, sweeps=None):
@@ -407,3 +396,8 @@ class Recording():
         self.y_data = self.y_data[:, :-1, :]
         self.sweep_count -= 1
         self.added_sweep_count -= 1
+        
+    def get_offset(self, xval):
+        #Use to convert x indices in a slice starting at xlim to indices in the full recording. Is set up to correspond to get_xs/get_ys in continuous mode 
+        #In other words, the first element in, e.g., get_ys(mode = 'continuous', xlim=(x1,x2)) would be at the index find_offset(x1) in the full data 
+        return int(max(0, int(xval / self.x_interval)))
