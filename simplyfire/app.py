@@ -279,7 +279,7 @@ def load(window, splash):
     root.event_generate('<<LoadCompleted>>')
     print_time_lapse('Event <<LoadCompleted>> generated')
 
-    root.title('SimplyFire Beta v{}'.format(config.version))
+    root.title('SimplyFire v{}'.format(config.version))
     root.iconbitmap(os.path.join(config.IMG_DIR, 'logo_bw.ico'))
     if config.get_value('zoomed'):
         root.state('zoomed')
