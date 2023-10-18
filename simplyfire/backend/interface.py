@@ -29,7 +29,6 @@ import os
 # Use this module to connect analysis functions to the GUI
 from simplyfire.utils import abfWriter
 from simplyfire.utils.recording import Recording
-from psutil import Process
 
 mini_df = pd.DataFrame()
 current_channel = 0
