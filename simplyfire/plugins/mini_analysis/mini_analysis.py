@@ -789,6 +789,8 @@ def analyze_candidate_mini(xs,
                            max_drr=np.inf,
                            min_s2n=0,
                            max_s2n=np.inf,
+                           min_area=0,
+                           max_area=None,
                            #################################
                            offset=0,
                            y_unit='mV',
@@ -954,7 +956,7 @@ def analyze_candidate_mini(xs,
                 mini['failure'] = 'Minimum peak to peak separation not met'
                 return mini
             # check if previous peak has decayed sufficiently
-            if min((ys[int(max(0,prev_peak_idx_offset)):peak_idx] - prev_peak['baseline']) * direction) > prev_peak[
+            if peak_idx - prev_peak_idx_offset < 2*decay_max_points and min((ys[int(max(0,prev_peak_idx_offset)):peak_idx] - prev_peak['baseline']) * direction) > prev_peak[
                 'amp'] * direction * (100 - p_valley) / 100:
                 mini['success'] = False
                 mini['failure'] = 'Minimum peak_to_valley % not reached for the previous mini'
@@ -1084,7 +1086,7 @@ def analyze_candidate_mini(xs,
 
     mini['end_idx'] = end_idx + offset
 
-    # store the coordinate for the end of mini (where the plot crosses the trailing average)
+    # store the coordinate for the end of mini
     mini['end_coord_x'] = xs[end_idx]
     mini['end_coord_y'] = ys[end_idx]
 
@@ -1145,10 +1147,10 @@ def analyze_candidate_mini(xs,
         # mimics Mini Analysis
         mini['decay_A'] = mini['amp'] * direction
         mini['decay_baseline'] = 0
-        decay_idx = np.argmax((ys[int(peak_idx): int(min(peak_idx + decay_max_points, len(ys)))] - mini[
+        decay_idx_rel = np.argmax((ys[int(peak_idx): int(min(peak_idx + decay_max_points, len(ys)))] - mini[
             'baseline']) * direction < decay_p_amp * mini['amp'] * direction / 100)
-        if decay_idx > 0:
-            mini['decay_const'] = decay_idx / sampling_rate * 1000
+        if decay_idx_rel > 0:
+            mini['decay_const'] = decay_idx_rel / sampling_rate * 1000
         else:
             mini['failure'] = 'Decay constant could not be calculated'
             mini['success'] = False
@@ -1279,6 +1281,30 @@ def analyze_candidate_mini(xs,
             mini['failure'] = 'Max Decay:Rise ratio not met'
             return mini
 
+    if min_area > 0 or max_area:
+        search_offset = 0
+        below_baseline = []
+        while len(below_baseline) == 0 and search_offset < decay_max_points:
+            below_baseline = np.where(ys[peak_idx + search_offset:peak_idx + search_offset + 200]*direction < mini['baseline']*direction)[0]
+            search_offset += 200        
+        if len(below_baseline) == 0:
+            #print('No points found for mini at ' + str(mini['t']))
+            #print('Last time checked: ' + str(xs[peak_idx+search_offset])) 
+            area_end = peak_idx + decay_max_points        
+        else:
+            #print(xs[peak_idx + below_baseline[0] + search_offset - 200])
+            area_end = peak_idx + int(min(decay_max_points, below_baseline[0] + search_offset - 200))
+        area = direction * np.sum(ys[baseline_idx:area_end]-mini['baseline'])/10
+        #print('Area: ' + str(area) + ' ms*nA')
+        mini['area'] = area
+        mini['area_unit'] = 'ms*' + mini['amp_unit']
+        if area < min_area:
+            mini['success'] = False
+            mini['failure'] = 'Area under curve too small'
+        elif max_area and area > max_area:
+            mini['success'] = False
+            mini['failure'] = 'Area under curve too large'
+    
     ##print('*********************NEW MINI**********************')
     ##print(mini)
     return mini

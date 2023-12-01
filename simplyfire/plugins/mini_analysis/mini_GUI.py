@@ -110,6 +110,8 @@ detector_filter_min_dr = 0
 detector_filter_max_dr = 'None'
 detector_filter_min_s2n = 0
 detector_filter_max_s2n = 'None'
+detector_filter_min_area = 0
+detector_filter_max_area = 'None'
 
 # guide
 guide_geometry_height = 600
@@ -168,7 +170,10 @@ filter_params = {
             'min_drr': {'name': 'detector_filter_min_dr', 'conversion': float},
             'max_drr': {'name': 'detector_filter_max_dr', 'conversion': float},
             'min_s2n': {'name': 'detector_filter_min_s2n', 'conversion': float},
-            'max_s2n': {'name': 'detector_filter_max_s2n', 'conversion': float}
+            'max_s2n': {'name': 'detector_filter_max_s2n', 'conversion': float},
+            'min_area': {'name': 'detector_filter_min_area', 'conversion': float},
+            'max_area': {'name': 'detector_filter_max_area', 'conversion': float}
+            
         }
 decay_params = {
             'decay_p_amp': {
@@ -1157,7 +1162,6 @@ def popup_plot_base_extrapolate(xs, idx_offset, end, data):
     """
     global popup_tracker
     popup_tracker = True
-
     xs = xs[int(data['prev_peak_idx'])-idx_offset:end]
     A = data['prev_decay_A']
     decay = data['prev_decay_const'] / 1000
@@ -1291,10 +1295,9 @@ def popup_plot_recording(xs, ys, idx_offset, data):
         xlim_idx_R = 0
     xlim_idx_R -=  idx_offset
     end_idx = int(max(end_lim_idx, xlim_idx_R))
-    
 
-    popup.ax.plot(xs[start_idx:end_idx],
-                 ys[start_idx:end_idx],
+    popup.ax.plot(xs[int(max(0,start_idx)):int(min(len(xs)-1,end_idx))],
+                 ys[int(max(0,start_idx)):int(min(len(xs)-1,end_idx))],
                  linewidth=app.trace_display.trace_width,
                  color=app.trace_display.trace_color,
                  )
@@ -1371,6 +1374,7 @@ def popup_report(xs:np.ndarray, ys:np.ndarray, data:dict):
         popup.msg_label.insert(f"Rise: {data['rise_const']:.3f} {data['rise_unit']}\n")
     except:
         pass
+        
 
     try:
         if not data['compound']:
@@ -1410,6 +1414,12 @@ def popup_report(xs:np.ndarray, ys:np.ndarray, data:dict):
         popup.msg_label.insert(f'Signal-to-noise ratio: {data["amp"] * data["direction"] / data["stdev"]:.3f}\n')
     except:
         pass
+        
+    try:
+        popup.msg_label.insert(f'Area: {data["area"]:.3f} {data["area_unit"]}\n')
+    except:
+        pass    
+        
     popup.ax.legend(frameon=True, fancybox=True)
     popup.ax.autoscale(enable=True, axis='y', tight=False)
     popup.ax.relim()
@@ -1861,6 +1871,14 @@ form.insert_label_entry(name='detector_filter_max_s2n',
                         text='Maximum signal-to-noise ratio (amp/std)',
                         validate_type='float/None',
                         default=detector_filter_max_s2n)
+form.insert_label_entry(name='detector_filter_min_area',
+                        text='Minimum area under the curve',
+                        validate_type='float/None',
+                        default=detector_filter_min_area)
+form.insert_label_entry(name='detector_filter_max_area',
+                        text='Maximum area under the curve',
+                        validate_type='float/None',
+                        default=detector_filter_max_area)
 form.insert_button(text='Confirm', command=form.apply_parameters)
 form.insert_button(text='Default', command=lambda filter='detector_filter':form.set_to_default(filter))
 form.insert_button(text='Apply filter\n(all)', command=filter_all)
