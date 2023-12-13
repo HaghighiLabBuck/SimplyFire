@@ -183,9 +183,19 @@ decay/rise ratio
 
 signal-to-noise ratio
   Specify the minimum/maximum ratio between baseline noise standard deviation
-  and the maximum amplitude or the mini.
+  and the maximum amplitude of the mini.
   Baseline noise is defined as the standard deviation of the data points
   sampled in estimating the baseline.
+
+area under the curve
+  Specify the minimum/maximum area under the curve for a mini to be accepted. 
+  The bounds of the area are the data points above, and the calculated (left) baseline below. The unit is milliseconds
+  multiplied by the unit of the Y axis. For example, if the Y axis is in mV, the area is in ms*mV.
+  if the curve does not recross the baseline within twice the "Maximum x-interval considered for decay"
+  following the peak, the area is cut off at this time. As such, this feature is not particularly useful when the
+  baseline to the right of the mini is considerably above (or below) the baseline to the left, as the area
+  will be significantly over- (or under-)estimated, respectively. To save calculation time, area is only calculated 
+  when the minimum is greater than 0 or the maximum is not None.
 
 Confirm button
   Sets the filtering parameters for future analysis.
@@ -292,6 +302,7 @@ In the text box below the plot, the following details can be found:
   * Decay/rise ratio
   * Halfwidth
   * Signal-to-noise ratio
+  * Area under the curve, IF a filter was set on this quantity when the mini was found
 
   .. Tip::
     If no mini is discovered with manual analysis,
